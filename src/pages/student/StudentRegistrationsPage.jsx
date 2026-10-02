@@ -146,15 +146,15 @@ export const StudentRegistrationsPage = () => {
               </div>
 
               <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
-                {reg.status === 'REGISTERED' ? (
-                  <Link to={`/student/pass/${reg.registrationId}`}>
+                {reg.status !== 'CANCELLED' ? (
+                  <Link to={`/student/pass/${reg.id || reg.registrationId}`}>
                     <Button variant="electric" size="sm" icon={Ticket}>
                       Open Digital Pass
                     </Button>
                   </Link>
                 ) : (
-                  <span className="text-xs text-slate-500 font-mono">
-                    Pass: {reg.passValidity || 'INACTIVE'}
+                  <span className="text-xs text-rose-400 font-mono">
+                    Pass Cancelled
                   </span>
                 )}
 

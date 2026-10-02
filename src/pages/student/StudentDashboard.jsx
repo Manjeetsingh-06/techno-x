@@ -234,8 +234,8 @@ export const StudentDashboard = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                    {reg.status === 'REGISTERED' && (
-                      <Link to={`/student/pass/${reg.registrationId}`}>
+                    {reg.status !== 'CANCELLED' && reg.status !== 'WAITLISTED' && (
+                      <Link to={`/student/pass/${reg.id || reg.registrationId}`}>
                         <button className="btn-gold px-4 py-2 text-xs flex items-center gap-1.5 rounded-lg shadow-md shadow-amber-500/20">
                           <QrCode className="w-3.5 h-3.5" />
                           <span>Digital Pass</span>

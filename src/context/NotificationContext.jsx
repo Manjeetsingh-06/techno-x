@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 import { notificationService } from '../services/notificationService';
 
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
+  const { user } = useAuth();
   const [toasts, setToasts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -27,27 +29,42 @@ export const NotificationProvider = ({ children }) => {
   const showInfo = useCallback((msg, title = 'Notice') => showToast('info', msg, title), [showToast]);
   const showWarning = useCallback((msg, title = 'Warning') => showToast('warning', msg, title), [showToast]);
 
-  const refreshNotifications = useCallback(async (user) => {
-    if (!user) {
+  const refreshNotifications = useCallback(async (activeUser) => {
+    const targetUser = activeUser || user;
+    if (!targetUser) {
       setNotifications([]);
       setUnreadCount(0);
       return;
     }
-    const res = await notificationService.getUserNotifications();
-    if (res.success) {
+    const res = await notificationService.getUserNotifications(targetUser);
+    if (res.success && Array.isArray(res.data)) {
       setNotifications(res.data);
       setUnreadCount(res.data.filter((n) => !n.read).length);
     }
-  }, []);
+  }, [user]);
 
-  const markNotificationRead = async (id, user) => {
+  // Auto-refresh notifications when user logs in or changes, and poll periodically
+  useEffect(() => {
+    if (user) {
+      refreshNotifications(user);
+      const interval = setInterval(() => {
+        refreshNotifications(user);
+      }, 15000);
+      return () => clearInterval(interval);
+    } else {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, [user, refreshNotifications]);
+
+  const markNotificationRead = async (id, currentUser) => {
     await notificationService.markAsRead(id);
-    if (user) refreshNotifications(user);
+    refreshNotifications(currentUser || user);
   };
 
-  const markAllNotificationsRead = async (user) => {
+  const markAllNotificationsRead = async (currentUser) => {
     await notificationService.markAllAsRead();
-    if (user) refreshNotifications(user);
+    refreshNotifications(currentUser || user);
   };
 
   return (

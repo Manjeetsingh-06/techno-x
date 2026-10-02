@@ -67,6 +67,18 @@ export const StudentHistoryPage = () => {
         return <span className="text-xs text-slate-500 font-mono">Pending Gate Check</span>;
       },
     },
+    {
+      key: 'actions',
+      header: 'Pass',
+      render: (_, row) => (
+        <a
+          href={`/student/pass/${row.id || row.registrationId}`}
+          className="inline-flex items-center gap-1 text-xs font-bold text-amber-400 hover:text-amber-300 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20"
+        >
+          View Pass
+        </a>
+      ),
+    },
   ];
 
   return (
