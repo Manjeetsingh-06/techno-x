@@ -1,0 +1,26 @@
+# Generated files
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Env files — do NOT commit real secrets in .env.production for public repos
+# .env.production
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
