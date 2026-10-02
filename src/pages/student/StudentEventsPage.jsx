@@ -87,7 +87,7 @@ export const StudentEventsPage = () => {
                 key={event.id}
                 event={event}
                 registrationState={state}
-                linkPrefix="/events"
+                linkPrefix="/student/events"
               />
             );
           })}

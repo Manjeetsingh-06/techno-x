@@ -127,7 +127,7 @@ export const EventDetailsPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Back button */}
       <button
-        onClick={() => navigate('/events')}
+        onClick={() => navigate(-1)}
         className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Events Schedule

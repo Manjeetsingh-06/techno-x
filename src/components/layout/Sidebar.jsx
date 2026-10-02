@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
@@ -23,11 +23,13 @@ import {
   Megaphone,
   Radio,
   BookOpen,
-  Briefcase
+  Briefcase,
+  LogOut
 } from 'lucide-react';
 
 export const Sidebar = ({ isOpen, onClose }) => {
-  const { role, user } = useAuth();
+  const { role, user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const studentLinks = [
     { to: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -93,6 +95,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
   else if (role === 'MANAGEMENT_COMMITTEE') links = committeeLinks;
   else if (role === 'ADMIN') links = adminLinks;
 
+  const handleExitLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -109,9 +116,9 @@ export const Sidebar = ({ isOpen, onClose }) => {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Brand Header */}
+        {/* Brand Header — logo stays inside dashboard, not public home */}
         <div className="h-16 px-5 border-b border-white/10 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to={`/${role?.toLowerCase() || 'student'}/dashboard`} className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 via-amber-500 to-yellow-500 flex items-center justify-center shadow-md shadow-amber-500/25 group-hover:scale-105 transition-transform">
               <span className="font-black text-slate-950 text-base tracking-tighter">TX</span>
             </div>
@@ -193,10 +200,19 @@ export const Sidebar = ({ isOpen, onClose }) => {
           })}
         </div>
 
-        {/* Footer info */}
-        <div className="p-3 border-t border-white/10 text-[10px] text-slate-400 text-center">
-          <p className="font-semibold text-slate-300">Techno Group of Institutions</p>
-          <p className="text-amber-400 font-medium">“Connect. Participate. Experience.”</p>
+        {/* Footer — Exit & Logout */}
+        <div className="p-3 border-t border-white/10 space-y-2">
+          <button
+            onClick={handleExitLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:text-white hover:bg-red-500/20 border border-red-500/20 hover:border-red-400/40 transition-all duration-150"
+          >
+            <LogOut className="w-4 h-4" />
+            Exit &amp; Logout
+          </button>
+          <div className="text-[10px] text-slate-400 text-center">
+            <p className="font-semibold text-slate-300">Techno Group of Institutions</p>
+            <p className="text-amber-400 font-medium">"Connect. Participate. Experience."</p>
+          </div>
         </div>
       </aside>
     </>

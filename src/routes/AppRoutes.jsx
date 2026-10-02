@@ -124,6 +124,7 @@ export const AppRoutes = () => {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="events" element={<StudentEventsPage />} />
+          <Route path="events/:eventId" element={<EventDetailsPage />} />
           <Route path="registrations" element={<StudentRegistrationsPage />} />
           <Route path="pass/:registrationId" element={<StudentPassPage />} />
           <Route path="calendar" element={<StudentCalendarPage />} />
