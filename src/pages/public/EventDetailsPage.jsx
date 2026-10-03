@@ -55,7 +55,7 @@ export const EventDetailsPage = () => {
       }
     } else {
       showError('Event not found or invalid ID');
-      navigate('/events');
+      navigate(-1);
     }
     setLoading(false);
   };
@@ -89,7 +89,7 @@ export const EventDetailsPage = () => {
 
   const handleRegister = async () => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: { pathname: `/events/${effectiveId}` } } });
+      navigate('/login', { state: { from: { pathname: window.location.pathname } } });
       return;
     }
 

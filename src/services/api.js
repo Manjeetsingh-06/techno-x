@@ -6,6 +6,13 @@ const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : '/api';
 
+// Non-blocking warmup ping to awaken Render container early
+if (typeof window !== 'undefined' && import.meta.env.VITE_API_URL) {
+  setTimeout(() => {
+    fetch(`${API_BASE}/events`, { method: 'GET', keepalive: true }).catch(() => {});
+  }, 500);
+}
+
 
 export const apiClient = {
   getAuthHeaders() {

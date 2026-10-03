@@ -150,6 +150,7 @@ export const AppRoutes = () => {
           <Route path="students" element={<FacultyStudentsPage />} />
           <Route path="students/:studentId" element={<FacultyStudentDetailsPage />} />
           <Route path="events" element={<FacultyEventsPage />} />
+          <Route path="events/:eventId" element={<EventDetailsPage />} />
           <Route path="events/plan" element={<CommitteeEventPlanningPage />} />
           <Route path="approvals" element={<FacultyApprovalsPage />} />
           <Route path="registrations" element={<FacultyRegistrationsPage />} />
@@ -175,6 +176,7 @@ export const AppRoutes = () => {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<CommitteeDashboard />} />
           <Route path="events" element={<CommitteeEventsPage />} />
+          <Route path="events/:eventId" element={<EventDetailsPage />} />
           <Route path="events/plan" element={<CommitteeEventPlanningPage />} />
           <Route path="participants" element={<CommitteeParticipantsPage />} />
           <Route path="attendance" element={<CommitteeAttendancePage />} />

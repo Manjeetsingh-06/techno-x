@@ -49,7 +49,7 @@ export const NotificationProvider = ({ children }) => {
       refreshNotifications(user);
       const interval = setInterval(() => {
         refreshNotifications(user);
-      }, 15000);
+      }, 60000);
       return () => clearInterval(interval);
     } else {
       setNotifications([]);

@@ -84,6 +84,7 @@ export const AttendanceModule = ({ role = 'FACULTY' }) => {
   const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
   const usbInputRef = useRef(null);
+  const isProcessingScanRef = useRef(false);
 
   // Correction modal
   const [correctModalOpen, setCorrectModalOpen] = useState(false);
@@ -119,13 +120,16 @@ export const AttendanceModule = ({ role = 'FACULTY' }) => {
   // Actual QR Code Handler: processes ONLY when a real QR is scanned or decoded!
   const handleDecodedQR = async (decodedText) => {
     if (!decodedText || !decodedText.trim()) return;
+    if (isProcessingScanRef.current) return; // Prevent 10fps duplicate scan storms!
 
+    isProcessingScanRef.current = true;
     setScannerError(null);
-    setScannerStatusMessage(`Decoding Pass QR: ${decodedText.substring(0, 30)}...`);
+    setScannerStatusMessage(`Verifying Pass: ${decodedText.substring(0, 26)}...`);
 
     try {
       const res = await attendanceService.processQRScan({
         qrPayload: decodedText,
+        eventId: selectedEventId,
         operator: user,
       });
 
@@ -151,12 +155,7 @@ export const AttendanceModule = ({ role = 'FACULTY' }) => {
           ...prev.slice(0, 5)
         ]);
 
-        // Auto-switch table to the event if needed
-        if (res.data.eventId && res.data.eventId !== selectedEventId) {
-          setSelectedEventId(res.data.eventId);
-        } else {
-          fetchAttendance();
-        }
+        fetchAttendance();
       } else {
         playAudioBeep('error');
         setScannerError(res.error || 'Pass verification rejected');
@@ -166,6 +165,11 @@ export const AttendanceModule = ({ role = 'FACULTY' }) => {
       playAudioBeep('error');
       setScannerError(err.message || 'QR Verification failed');
       showError(err.message || 'Verification error');
+    } finally {
+      // Cooldown for 2.5 seconds before processing another frame
+      setTimeout(() => {
+        isProcessingScanRef.current = false;
+      }, 2500);
     }
   };
 
@@ -173,31 +177,48 @@ export const AttendanceModule = ({ role = 'FACULTY' }) => {
   const startCamera = async () => {
     try {
       setScannerError(null);
-      setScannerStatusMessage('Initializing camera hardware...');
+      setScannerStatusMessage('Accessing camera hardware...');
+
+      if (html5QrCodeRef.current) {
+        try {
+          await html5QrCodeRef.current.stop();
+          html5QrCodeRef.current.clear();
+        } catch (e) {}
+      }
 
       const qrScanner = new Html5Qrcode('qr-reader-container');
       html5QrCodeRef.current = qrScanner;
 
-      await qrScanner.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        },
-        (decodedText) => {
-          // Actual QR code captured by camera!
-          handleDecodedQR(decodedText);
-        },
-        (errorMessage) => {
-          // Scanning loop frame without QR; ignore
-        }
-      );
+      // Try environment (rear) camera first; if not supported (e.g. laptop webcam), fallback to front/user camera
+      try {
+        await qrScanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          (decodedText) => handleDecodedQR(decodedText),
+          () => {} // Scanning loop frame without QR; ignore
+        );
+      } catch (backCamErr) {
+        console.warn('Rear camera not found, trying front/laptop webcam...', backCamErr);
+        await qrScanner.start(
+          { facingMode: 'user' },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          (decodedText) => handleDecodedQR(decodedText),
+          () => {}
+        );
+      }
 
       setIsCameraActive(true);
       setScannerStatusMessage('Camera Active: Point at student QR pass to scan.');
     } catch (err) {
-      console.error(err);
+      console.error('Camera access failed:', err);
       setIsCameraActive(false);
       setScannerError('Could not start camera. Make sure camera permissions are allowed, or upload pass image below.');
       setScannerStatusMessage('Camera access unavailable.');
@@ -273,13 +294,16 @@ export const AttendanceModule = ({ role = 'FACULTY' }) => {
     try {
       const res = await attendanceService.markAttendance({
         registrationId,
+        eventId: selectedEventId,
         status,
         operator: user,
       });
       if (res.success) {
         playAudioBeep(status === 'PRESENT' ? 'success' : 'already');
-        showSuccess(`Marked ${res.data.studentName} as ${status}.`);
+        showSuccess(`Marked ${res.data?.studentName || 'Student'} as ${status}.`);
         fetchAttendance();
+      } else {
+        showError(res.error || 'Failed to update attendance');
       }
     } catch (err) {
       playAudioBeep('error');
@@ -407,8 +431,8 @@ export const AttendanceModule = ({ role = 'FACULTY' }) => {
 
   return (
     <div className="space-y-6">
-      {/* Hidden container for file scanner processing */}
-      <div id="file-scanner-hidden" className="hidden" />
+      {/* Offscreen container for file scanner processing */}
+      <div id="file-scanner-hidden" className="absolute -left-[9999px] -top-[9999px] w-64 h-64 pointer-events-none" />
 
       {/* ─────────────────────────────────────────────────────────────
           1. REAL OPTICAL QR SCANNER STATION

@@ -1,9 +1,20 @@
 import { apiClient } from './api';
 
+// Helper to parse numeric ID from numbers or string codes like EVT-001
+const parseNumericId = (val) => {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'number' && !isNaN(val)) return val;
+  const str = String(val).trim();
+  if (/^\d+$/.test(str)) return parseInt(str, 10);
+  const match = str.match(/\d+/);
+  return match ? parseInt(match[0], 10) : null;
+};
+
 export const attendanceService = {
   // Get attendance roster for an event
   getEventAttendance: async (eventId) => {
-    const res = await apiClient.get(`/attendance/event/${eventId}`);
+    const cleanId = parseNumericId(eventId) || 1;
+    const res = await apiClient.get(`/attendance/event/${cleanId}`);
     if (res.success && res.data) {
       const records = Array.isArray(res.data) ? res.data : [];
       const total = records.length;
@@ -15,7 +26,7 @@ export const attendanceService = {
       return {
         success: true,
         data: {
-          eventId,
+          eventId: cleanId,
           records: records.map(r => ({
             ...r,
             studentName: r.student?.user?.name || r.student?.studentId || 'Student',
@@ -37,17 +48,21 @@ export const attendanceService = {
     }
     return {
       success: false,
-      data: { eventId, records: [], stats: { total: 0, present: 0, absent: 0, pending: 0, percentage: 0 } },
+      data: { eventId: cleanId, records: [], stats: { total: 0, present: 0, absent: 0, pending: 0, percentage: 0 } },
       error: res.error || 'Failed to fetch attendance'
     };
   },
 
   // Mark attendance via scanned QR pass token or direct ID
   markAttendance: async ({ qrToken, token, eventId, registrationId, studentId, status = 'PRESENT', operator }) => {
+    const cleanEventId = parseNumericId(eventId) || 1;
+    const cleanStudentId = parseNumericId(studentId);
+    const passToken = token || qrToken || registrationId || null;
+
     const payload = {
-      eventId: eventId ? parseInt(eventId, 10) : 1,
-      token: token || qrToken || registrationId || null,
-      studentId: studentId ? parseInt(studentId, 10) : null,
+      eventId: cleanEventId,
+      token: passToken ? String(passToken) : null,
+      studentId: cleanStudentId,
       status: status
     };
 
@@ -56,11 +71,14 @@ export const attendanceService = {
   },
 
   // Process QR Code Scan Payload
-  processQRScan: async ({ qrPayload, operator }) => {
+  processQRScan: async ({ qrPayload, eventId: targetEventId, operator }) => {
     let token = qrPayload;
     let eventId = null;
     let studentId = null;
+    let studentName = null;
     let regId = null;
+    let qrToken = null;
+    let passId = null;
 
     try {
       if (typeof qrPayload === 'string') {
@@ -68,18 +86,22 @@ export const attendanceService = {
         if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
           const parsed = JSON.parse(trimmed);
           regId = parsed.regId || parsed.registrationId;
-          token = parsed.qrToken || parsed.token || regId || qrPayload;
-          eventId = parsed.eventId;
-          studentId = parsed.studentId;
+          qrToken = parsed.qrToken;
+          passId = parsed.passId || parsed.digitalPassId;
+          token = qrToken || passId || regId || parsed.token || qrPayload;
+          eventId = parseNumericId(parsed.eventId);
+          studentId = parsed.studentCode || parsed.studentId;
+          studentName = parsed.studentName;
         }
       }
     } catch (e) {
       // plain text token
     }
 
+    const effectiveEventId = eventId || parseNumericId(targetEventId) || 1;
     const payload = {
-      eventId: eventId ? parseInt(eventId, 10) : 1,
-      token: String(token || regId || 'TX-QR-1'),
+      eventId: effectiveEventId,
+      token: String(token || regId || qrToken || passId || 'TX-QR-1'),
       status: 'PRESENT'
     };
 
@@ -90,7 +112,7 @@ export const attendanceService = {
           success: true,
           data: {
             ...res.data,
-            studentName: res.data.studentName || studentId || 'Verified Student',
+            studentName: res.data.studentName || studentName || studentId || 'Verified Student',
             studentCode: res.data.studentCode || studentId || 'TGI2026BCA101',
             alreadyMarked: false,
             message: 'Gate Pass Verified - Admission Granted!'
@@ -101,10 +123,10 @@ export const attendanceService = {
         return {
           success: true,
           data: {
-            studentName: studentId || (regId ? `Student (${regId})` : 'Attendee'),
+            studentName: studentName || studentId || (regId ? `Student (${regId})` : 'Attendee'),
             studentCode: studentId || 'TGI2026BCA101',
             alreadyMarked: true,
-            eventId: eventId || 1,
+            eventId: effectiveEventId,
             message: res.error || 'Already marked PRESENT earlier!'
           }
         };
@@ -116,10 +138,10 @@ export const attendanceService = {
       success: true,
       data: {
         id: Date.now(),
-        studentName: studentId || (regId ? `Student (${regId})` : 'Rohan Sharma'),
+        studentName: studentName || studentId || (regId ? `Student (${regId})` : 'Rohan Sharma'),
         studentCode: studentId || 'TGI2026BCA101',
         course: 'BCA',
-        eventId: eventId || 1,
+        eventId: effectiveEventId,
         status: 'PRESENT',
         markedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         alreadyMarked: false,

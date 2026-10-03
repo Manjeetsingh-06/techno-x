@@ -15,12 +15,22 @@ export const DigitalPass = ({
 
   if (!registration) return null;
 
+  // Compute clean numeric or mapped event ID
+  const cleanEventId = typeof registration.eventId === 'number'
+    ? registration.eventId
+    : (parseInt(String(registration.eventId || event?.id || '1').replace(/\D/g, ''), 10) || 1);
+
   // Compute QR payload
   const qrData = JSON.stringify({
     regId: registration.registrationId || registration.id,
-    studentId: registration.studentId || student?.studentId,
-    eventId: registration.eventId,
-    issuedAt: registration.registeredAt,
+    studentId: registration.studentCode || registration.studentId || student?.studentId,
+    studentCode: registration.studentCode || registration.studentId || student?.studentId,
+    eventId: cleanEventId,
+    qrToken: registration.qrToken || `TX-QR-${registration.id || 1}`,
+    passId: registration.digitalPassId || registration.registrationId,
+    studentName: registration.studentName || student?.name,
+    eventTitle: registration.eventTitle || event?.title,
+    issuedAt: registration.registeredAt || new Date().toISOString(),
   });
 
   const handlePrint = () => {
